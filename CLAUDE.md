@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Expo native module called `@mykin-ai/expo-audio-stream` that provides real-time audio recording and playback capabilities for React Native applications. The module supports simultaneous recording and playback, voice processing, and real-time audio streaming - features not available in standard Expo audio APIs.
+This is an Expo native module called `@irvingouj/expo-audio-stream` that provides real-time audio recording and playback capabilities for React Native applications. The module supports simultaneous recording and playback, voice processing, and real-time audio streaming - features not available in standard Expo audio APIs.
 
 ## Development Commands
 

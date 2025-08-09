@@ -6,7 +6,7 @@ module.exports = async (env, argv) => {
     {
       ...env,
       babel: {
-        dangerouslyAddModulePathsToTranspile: ["@mykin-ai/expo-audio-stream"],
+        dangerouslyAddModulePathsToTranspile: ["@irvingouj/expo-audio-stream"],
       },
     },
     argv

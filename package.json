@@ -1,5 +1,5 @@
 {
-  "name": "@mykin-ai/expo-audio-stream",
+  "name": "@irvingouj/expo-audio-stream",
   "version": "0.2.26",
   "description": "Expo Play Audio Stream module - Fork of expo-audio-stream with additional features and Expo SDK 52+ support",
   "main": "build/index.js",
@@ -27,16 +27,16 @@
     "fork",
     "expo-audio-stream"
   ],
-  "repository": "https://github.com/mykin-ai/expo-audio-stream",
+  "repository": "https://github.com/Irvingouj/expo-audio-stream",
   "bugs": {
-    "url": "https://github.com/mykin-ai/expo-audio-stream/issues"
+    "url": "https://github.com/Irvingouj/expo-audio-stream/issues"
   },
-  "author": "pax <nzpopa@users.noreply.github.com> (https://github.com/hyphen-id)",
+  "author": "Irving Ou <oujunyiirving@gmail.com> (https://github.com/Irvingouj)",
   "license": "MIT",
-  "homepage": "https://github.com/mykin-ai/expo-audio-stream#readme",
+  "homepage": "https://github.com/Irvingouj/expo-audio-stream#readme",
   "funding": {
     "type": "github",
-    "url": "https://github.com/sponsors/mykin-ai"
+    "url": "https://github.com/sponsors/Irvingouj"
   },
   "originalRepository": {
     "type": "git",

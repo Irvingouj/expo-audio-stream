@@ -247,7 +247,7 @@ Note: Voice processing may result in lower audio levels as it optimizes for voic
 
 ## Contributions 🤝
 
-This is a fork of the original [expo-audio-stream](https://github.com/expo/expo-audio-stream) module. Contributions to this fork are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/mykin-ai/expo-audio-stream).
+This is a fork of the original [expo-audio-stream](https://github.com/expo/expo-audio-stream) module. Contributions to this fork are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/Irvingouj/expo-audio-stream).
 
 For contributions to the original module, please visit the [original repository](https://github.com/expo/expo-audio-stream).
 
