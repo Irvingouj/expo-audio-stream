@@ -87,7 +87,7 @@ class AudioUtils {
     ) -> AVAudioPCMBuffer? {
         var error: NSError? = nil
         let depth = bitDepth ?? 16
-        var commonFormat: AVAudioCommonFormat = getCommonFormat(depth: depth)
+        let commonFormat: AVAudioCommonFormat = getCommonFormat(depth: depth)
         guard let nativeInputFormat = AVAudioFormat(commonFormat: commonFormat, sampleRate: buffer.format.sampleRate, channels: 1, interleaved: true) else {
             Logger.debug("AudioSessionManager: Failed to convert to desired format. AudioFormat is corrupted.")
             return nil
@@ -165,6 +165,28 @@ class AudioUtils {
         return avgRMS > 0 ? 20 * log10(avgRMS) : -160.0
     }
     
+    static func convertBuffer(_ buffer: AVAudioPCMBuffer, with converter: AVAudioConverter) -> AVAudioPCMBuffer? {
+        let outputFormat = converter.outputFormat
+        let frameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * (outputFormat.sampleRate / buffer.format.sampleRate))
+        
+        guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: frameCapacity) else {
+            return nil
+        }
+        
+        var error: NSError?
+        let status = converter.convert(to: convertedBuffer, error: &error) { inNumPackets, outStatus in
+            outStatus.pointee = .haveData
+            return buffer
+        }
+        
+        if status == .error || error != nil {
+            Logger.debug("Error during buffer conversion: \(error?.localizedDescription ?? "Unknown error")")
+            return nil
+        }
+        
+        return convertedBuffer
+    }
+
     /// Removes WAV/RIFF header from audio data if present
     /// - Parameter data: The input audio data that might contain a WAV/RIFF header
     /// - Returns: Audio data with WAV/RIFF header removed, or original data if no header found

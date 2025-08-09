@@ -55,7 +55,7 @@ class Microphone {
             if isRecording {
                 stopRecording(resolver: nil)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    guard let self = self, let settings = self.recordingSettings else { return }
+                    guard let self = self else { return }
                     
                     _ = startRecording(settings: self.recordingSettings!, intervalMilliseconds: 100)
                 }
@@ -102,33 +102,15 @@ class Microphone {
         
         // Check if the input node supports the desired format
         let hardwareFormat = audioEngine.inputNode.inputFormat(forBus: 0)
-        if hardwareFormat.sampleRate != newSettings.sampleRate {
-            Logger.debug("Debug: Preferred sample rate not supported. Falling back to hardware sample rate \(session.sampleRate).")
-            newSettings.sampleRate = session.sampleRate
-        }
+        let audioFormat = recordingSettings?.toAVAudioFormat() ?? hardwareFormat
         
-        let actualSampleRate = session.sampleRate
-        if actualSampleRate != newSettings.sampleRate {
-            Logger.debug("Debug: Preferred sample rate not set. Falling back to hardware sample rate: \(actualSampleRate) Hz")
-            newSettings.sampleRate = actualSampleRate
-        }
-        Logger.debug("Debug: Audio session is successfully configured. Actual sample rate is \(actualSampleRate) Hz")
-        
-        recordingSettings = newSettings  // Update the class property with the new settings
-        
-        // Correct the format to use 16-bit integer (PCM)
-        guard let audioFormat = AVAudioFormat(commonFormat: commonFormat, sampleRate: newSettings.sampleRate, channels: UInt32(newSettings.numberOfChannels), interleaved: true) else {
-            Logger.debug("Error: Failed to create audio format with the specified bit depth.")
-            return StartRecordingResult(error: "Error: Failed to create audio format with the specified bit depth.")
-        }
-        
-        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: audioFormat) { [weak self] (buffer, time) in
+        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: hardwareFormat) { [weak self] (buffer, time) in
             guard let self = self else {
                 Logger.debug("Error: File URL or self is nil during buffer processing.")
                 return
             }
             
-            self.processAudioBuffer(buffer)
+            self.processAudioBuffer(buffer, outputFormat: audioFormat)
             self.lastBufferTime = time
         }
         
@@ -171,30 +153,22 @@ class Microphone {
     /// - Parameters:
     ///   - buffer: The audio buffer to process.
     ///   - fileURL: The URL of the file to write the data to.
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        let targetSampleRate = recordingSettings?.desiredSampleRate ?? buffer.format.sampleRate
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, outputFormat: AVAudioFormat) {
         let finalBuffer: AVAudioPCMBuffer
-               
-        
-        if buffer.format.sampleRate != targetSampleRate {
-            // Resample the audio buffer if the target sample rate is different from the input sample rate
-            if let resampledBuffer = AudioUtils.resampleAudioBuffer(buffer, from: buffer.format.sampleRate, to: targetSampleRate) {
-                finalBuffer = resampledBuffer
-            } else {
-                if let convertedBuffer = AudioUtils.tryConvertToFormat(
-                    inputBuffer: buffer,
-                    desiredSampleRate: targetSampleRate,
-                    desiredChannel: 1,
-                    bitDepth: recordingSettings?.bitDepth ?? 16
-                ) {
+
+        if buffer.format != outputFormat {
+            if let converter = AVAudioConverter(from: buffer.format, to: outputFormat) {
+                if let convertedBuffer = AudioUtils.convertBuffer(buffer, with: converter) {
                     finalBuffer = convertedBuffer
                 } else {
-                    Logger.debug("Failed to convert to desired format.")
+                    Logger.debug("Failed to convert buffer to output format")
                     finalBuffer = buffer
                 }
+            } else {
+                Logger.debug("Failed to create audio converter")
+                finalBuffer = buffer
             }
         } else {
-            // Use the original buffer if the sample rates are the same
             finalBuffer = buffer
         }
         
