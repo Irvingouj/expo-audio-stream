@@ -1,6 +1,6 @@
 # Expo Play Audio Stream 🎶
 
-**This is a fork of [expo-audio-stream](https://github.com/expo/expo-audio-stream) with additional features and modernized for Expo SDK 52+.**
+**This is a fork of [mykin-ai/expo-audio-stream](https://github.com/mykin-ai/expo-audio-stream) with additional features and modernized for Expo SDK 52+.**
 
 > **📱 Platform Support:** Currently available for **iOS only**. Android support is available in the original repository but not yet ported to this fork.
 
@@ -247,9 +247,9 @@ Note: Voice processing may result in lower audio levels as it optimizes for voic
 
 ## Contributions 🤝
 
-This is a fork of the original [expo-audio-stream](https://github.com/expo/expo-audio-stream) module. Contributions to this fork are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/Irvingouj/expo-audio-stream).
+This is a fork of [mykin-ai/expo-audio-stream](https://github.com/mykin-ai/expo-audio-stream), which is itself a fork of the [original expo-audio-stream](https://github.com/expo/expo-audio-stream) module. Contributions to this fork are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/Irvingouj/expo-audio-stream).
 
-For contributions to the original module, please visit the [original repository](https://github.com/expo/expo-audio-stream).
+For contributions to the upstream fork, please visit [mykin-ai/expo-audio-stream](https://github.com/mykin-ai/expo-audio-stream). For contributions to the original module, please visit the [original repository](https://github.com/expo/expo-audio-stream).
 
 ## License 📄
 

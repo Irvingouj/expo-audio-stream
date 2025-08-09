@@ -40,7 +40,7 @@
   },
   "originalRepository": {
     "type": "git",
-    "url": "https://github.com/expo/expo-audio-stream.git"
+    "url": "https://github.com/mykin-ai/expo-audio-stream.git"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
