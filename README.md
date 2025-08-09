@@ -1,5 +1,11 @@
 # Expo Play Audio Stream 🎶
 
+**This is a fork of [expo-audio-stream](https://github.com/expo/expo-audio-stream) with additional features and modernized for Expo SDK 52+.**
+
+> **📱 Platform Support:** Currently available for **iOS only**. Android support is available in the original repository but not yet ported to this fork.
+
+> **🔧 Managed Workflow Compatible:** Unlike many audio streaming solutions, this module works seamlessly with Expo's managed workflow - **no need to eject to bare workflow**. Simply install and use with `npx expo install`.
+
 The Expo Play Audio Stream module is a powerful tool for recording and streaming audio data in your Expo-based React Native applications. It provides a seamless way to record audio from the microphone and play audio chunks in real-time, allowing you to build audio-centric features like voice assistants, audio players, voice recorders, and more.
 
 ## Motivation 🎯
@@ -234,13 +240,16 @@ Note: Voice processing may result in lower audio levels as it optimizes for voic
 
 ## Limitations and Considerations ⚠️
 
-- The Expo Play Audio Stream module is designed to work with specific audio formats (RIFF, 16 kHz, 16-bit, mono PCM). If your audio data is in a different format, you may need to convert it before using the module.
-- The module does not provide advanced features like audio effects or mixing. It is primarily focused on real-time audio streaming and recording.
-- The performance of the module may depend on the device's hardware capabilities and the complexity of the audio data being streamed.
+- **Platform Support**: This fork currently supports **iOS only**. Android support from the original repository has not been ported yet.
+- **Audio Format Requirements**: The module is designed to work with specific audio formats (RIFF, 16 kHz, 16-bit, mono PCM). If your audio data is in a different format, you may need to convert it before using the module.
+- **Feature Scope**: The module does not provide advanced features like audio effects or mixing. It is primarily focused on real-time audio streaming and recording.
+- **Performance**: The performance of the module may depend on the device's hardware capabilities and the complexity of the audio data being streamed.
 
 ## Contributions 🤝
 
-Contributions to the Expo Audio Stream module are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/expo/expo-audio-stream).
+This is a fork of the original [expo-audio-stream](https://github.com/expo/expo-audio-stream) module. Contributions to this fork are welcome! If you encounter any issues or have ideas for improvements, feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/mykin-ai/expo-audio-stream).
+
+For contributions to the original module, please visit the [original repository](https://github.com/expo/expo-audio-stream).
 
 ## License 📄
 

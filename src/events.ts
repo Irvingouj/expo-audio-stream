@@ -1,14 +1,20 @@
 // packages/expo-audio-stream/src/events.ts
 
-import { EventEmitter, type Subscription } from 'expo-modules-core'
-
-
+import { EventSubscription } from 'expo-modules-core'
 import ExpoPlayAudioStreamModule from './ExpoPlayAudioStreamModule'
 
+// As of Expo SDK 52, the module is already an EventEmitter
+const emitter = ExpoPlayAudioStreamModule
 
-const emitter = new EventEmitter(ExpoPlayAudioStreamModule)
+// Define a simple type for the listener
+type Listener = (...args: any[]) => any;
 
-emitter.addListener('SoundChunkPlayed', (event: SoundChunkPlayedEventPayload) => {})
+// Create a simple addListener function using Expo's EventSubscription
+function addListener(eventType: string, listener: Listener): EventSubscription {
+  return emitter.addListener(eventType, listener);
+}
+
+// Example listener setup - remove unused test listener
 
 export interface AudioEventPayload {
     encoded?: string
@@ -48,20 +54,20 @@ export const AudioEvents = {
 
 export function addAudioEventListener(
     listener: (event: AudioEventPayload) => Promise<void>
-): Subscription {
-    return emitter.addListener<AudioEventPayload>('AudioData', listener)
+): EventSubscription {
+    return addListener('AudioData', listener);
 }
 
 export function addSoundChunkPlayedListener(
     listener: (event: SoundChunkPlayedEventPayload) => Promise<void>
-): Subscription {
-    return emitter.addListener<SoundChunkPlayedEventPayload>('SoundChunkPlayed', listener)
+): EventSubscription {
+    return addListener('SoundChunkPlayed', listener);
 }
 
 export function subscribeToEvent<T extends unknown>(
     eventName: string,
     listener: (event: T | undefined) => Promise<void>
-): Subscription {
-    return emitter.addListener(eventName, listener)
+): EventSubscription {
+    return addListener(eventName, listener);
 }
 

@@ -2,40 +2,30 @@ import Foundation
 import AVFoundation
 import ExpoModulesCore
 
-let audioDataEvent: String = "AudioData"
-let soundIsPlayedEvent: String = "SoundChunkPlayed"
-let soundIsStartedEvent: String = "SoundStarted"
-let deviceReconnectedEvent: String = "DeviceReconnected"
+// Event names moved to inline usage for modern Expo module API
 
 
 public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, MicrophoneDataDelegate, SoundPlayerDelegate {
     private var _audioSessionManager: AudioSessionManager?
     private var _microphone: Microphone?
-    private var _soundPlayer: SoundPlayer?
     
-    private var audioSessionManager: AudioSessionManager {
-        if _audioSessionManager == nil {
-            _audioSessionManager = AudioSessionManager()
-            _audioSessionManager?.delegate = self
-        }
-        return _audioSessionManager!
-    }
+    private lazy var audioSessionManager: AudioSessionManager = {
+        let manager = AudioSessionManager()
+        manager.delegate = self
+        return manager
+    }()
     
-    private var microphone: Microphone {
-        if _microphone == nil {
-            _microphone = Microphone()
-            _microphone?.delegate = self
-        }
-        return _microphone!
-    }
+    private lazy var microphone: Microphone = {
+        let mic = Microphone()
+        mic.delegate = self
+        return mic
+    }()
     
-    private var soundPlayer: SoundPlayer {
-        if _soundPlayer == nil {
-            _soundPlayer = SoundPlayer()
-            _soundPlayer?.delegate = self
-        }
-        return _soundPlayer!
-    }
+    private lazy var soundPlayer: SoundPlayer = {
+        let player = SoundPlayer()
+        player.delegate = self
+        return player
+    }()
     
     private var isAudioSessionInitialized: Bool = false
 
@@ -43,13 +33,12 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
         Name("ExpoPlayAudioStream")
         
         // Defines event names that the module can send to JavaScript.
-        Events([audioDataEvent, soundIsPlayedEvent, soundIsStartedEvent, deviceReconnectedEvent])
+        Events(["AudioData", "SoundChunkPlayed", "SoundStarted", "DeviceReconnected"])
         
         Function("destroy") {
             // Now we can properly reset all instances
             self._audioSessionManager = nil
             self._microphone = nil
-            self._soundPlayer = nil
             self.isAudioSessionInitialized = false
         }
         
@@ -92,7 +81,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             
             if let result = self.audioSessionManager.startRecording(settings: settings, intervalMilliseconds: interval) {
                 if let resError = result.error {
-                    promise.reject("ERROR", resError)
+                    promise.reject("AUDIO_RECORDING_ERROR", resError)
                 } else {
                     let resultDict: [String: Any] = [
                         "fileUri": result.fileUri ?? "",
@@ -104,7 +93,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                     promise.resolve(resultDict)
                 }
             } else {
-                promise.reject("ERROR", "Failed to start recording.")
+                promise.reject("AUDIO_RECORDING_ERROR", "Failed to start recording.")
             }
         }
         
@@ -126,7 +115,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             if let recordingResult = self.audioSessionManager.stopRecording() {
                 
                 if let resError = recordingResult.error {
-                    promise.reject("ERROR", resError)
+                    promise.reject("AUDIO_RECORDING_ERROR", resError)
                 } else {
                 // Convert RecordingResult to a dictionary
                 let resultDict: [String: Any] = [
@@ -141,7 +130,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                 ]
                 promise.resolve(resultDict)}
             } else {
-                promise.reject("ERROR", "Failed to stop recording or no recording in progress.")
+                promise.reject("AUDIO_RECORDING_ERROR", "Failed to stop recording or no recording in progress.")
             }
         }
         
@@ -163,7 +152,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             audioSessionManager.playAudio(base64chunk, turnId, commonFormat: commonFormat, resolver: { _ in
                 promise.resolve(nil)
             }, rejecter: { code, message, error in
-                promise.reject(code ?? "ERR_UNKNOWN", message ?? "Unknown error")
+                promise.reject(code ?? "AUDIO_PLAYBACK_ERROR", message ?? "Unknown error")
             })
         }
         
@@ -171,7 +160,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             audioSessionManager.cleanPlaybackQueue(turnId, resolver: { _ in
                 promise.resolve(nil)
             }, rejecter: { code, message, error in
-                promise.reject(code ?? "ERR_UNKNOWN", message ?? "Unknown error")
+                promise.reject(code ?? "AUDIO_PLAYBACK_ERROR", message ?? "Unknown error")
             })
         }
 
@@ -184,9 +173,8 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             audioSessionManager.stopAudio(promise: promise)
         }
         
-        AsyncFunction("listAudioFiles") { (promise: Promise) in
-            let result = listAudioFiles()
-            promise.resolve(result)
+        Function("listAudioFiles") {
+            return listAudioFiles()
         }
         
         AsyncFunction("playSound") { (base64Chunk: String, turnId: String, encoding: String?, promise: Promise) in
@@ -207,14 +195,15 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                     Logger.debug("[ExpoPlayAudioStreamModule] Unsupported encoding: \(encoding ?? "nil"), defaulting to PCM_S16LE")
                     commonFormat = .pcmFormatInt16
                 }
-        
+
                 try soundPlayer.play(audioChunk: base64Chunk, turnId: turnId, resolver: {
                     _ in promise.resolve(nil)
                 }, rejecter: {code, message, error in
-                    promise.reject(code ?? "ERR_UNKNOWN", message ?? "Unknown error")
+                    promise.reject(code ?? "AUDIO_PLAYBACK_ERROR", message ?? "Unknown error")
                 }, commonFormat: commonFormat)
             } catch {
                 print("Error enqueuing audio: \(error.localizedDescription)")
+                promise.reject("AUDIO_PLAYBACK_ERROR", "Error enqueuing audio: \(error.localizedDescription)")
             }
         }
         
@@ -224,6 +213,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                     try ensureAudioSessionInitialized()
                 } catch {
                     print("Failed to init audio session \(error.localizedDescription)")
+                    promise.reject("AUDIO_SESSION_ERROR", "Failed to init audio session: \(error.localizedDescription)" )
                     return
                 }
             }
@@ -268,14 +258,14 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                 do {
                     try ensureAudioSessionInitialized(settings: settings)
                 } catch {
-                    promise.reject("ERROR", "Failed to init audio session \(error.localizedDescription)")
+                    promise.reject("AUDIO_SESSION_ERROR", "Failed to init audio session \(error.localizedDescription)")
                     return
                 }
             }            
             
             if let result = self.microphone.startRecording(settings: settings, intervalMilliseconds: interval) {
                 if let resError = result.error {
-                    promise.reject("ERROR", resError)
+                    promise.reject("MICROPHONE_ERROR", resError)
                 } else {
                     let resultDict: [String: Any] = [
                         "fileUri": result.fileUri ?? "",
@@ -287,7 +277,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                     promise.resolve(resultDict)
                 }
             } else {
-                promise.reject("ERROR", "Failed to start recording.")
+                promise.reject("MICROPHONE_ERROR", "Failed to start recording.")
             }
         }
         
@@ -350,7 +340,7 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
                 
                 promise.resolve(nil)
             } catch {
-                promise.reject("ERROR_CONFIG_UPDATE", "Failed to set sound configuration: \(error.localizedDescription)")
+                promise.reject("SOUND_CONFIG_ERROR", "Failed to set sound configuration: \(error.localizedDescription)")
             }
         }
         
@@ -419,10 +409,11 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             "encoded": encodedData,
             "deltaSize": deltaSize,
             "totalSize": fileSize,
-            "mimeType": manager.mimeType
+            "mimeType": manager.mimeType,
+            "streamUuid": UUID().uuidString
         ]
         // Emit the event to JavaScript
-        sendEvent(audioDataEvent, eventBody)
+        sendEvent("AudioData", eventBody)
     }
     
     /// Checks microphone permission and calls the completion handler with the result.
@@ -493,10 +484,11 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             "deltaSize": 0,
             "totalSize": 0,
             "mimeType": "",
+            "streamUuid": UUID().uuidString,
             "soundLevel": soundLevel ?? -160
         ]
         // Emit the event to JavaScript
-        sendEvent(audioDataEvent, eventBody)
+        sendEvent("AudioData", eventBody)
     }
     
     func onDeviceReconnected(_ reason: AVAudioSession.RouteChangeReason) {
@@ -512,14 +504,14 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             reasonString = "unknown"
         }
         
-        sendEvent(deviceReconnectedEvent, ["reason": reasonString])
+        sendEvent("DeviceReconnected", ["reason": reasonString])
     }
     
     func onSoundChunkPlayed(_ isFinal: Bool) {
-        sendEvent(soundIsPlayedEvent, ["isFinal": isFinal])
+        sendEvent("SoundChunkPlayed", ["isFinal": isFinal])
     }
     
     func onSoundStartedPlaying() {
-        sendEvent(soundIsStartedEvent)
+        sendEvent("SoundStarted")
     }
 }

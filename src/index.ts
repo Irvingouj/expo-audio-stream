@@ -1,4 +1,4 @@
-import { Subscription } from "expo-modules-core";
+import { EventSubscription } from 'expo-modules-core'
 import ExpoPlayAudioStreamModule from "./ExpoPlayAudioStreamModule";
 import {
   AudioDataEvent,
@@ -38,16 +38,16 @@ export class ExpoPlayAudioStream {
   /**
    * Starts microphone recording.
    * @param {RecordingConfig} recordingConfig - Configuration for the recording.
-   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: Subscription}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
+   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
    * @throws {Error} If the recording fails to start.
    */
   static async startRecording(recordingConfig: RecordingConfig): Promise<{
     recordingResult: StartRecordingResult;
-    subscription?: Subscription;
+    subscription?: EventSubscription;
   }> {
     const { onAudioStream, ...options } = recordingConfig;
 
-    let subscription: Subscription | undefined;
+    let subscription: EventSubscription | undefined;
 
     if (onAudioStream && typeof onAudioStream == "function") {
       subscription = addAudioEventListener(async (event: AudioEventPayload) => {
@@ -113,9 +113,9 @@ export class ExpoPlayAudioStream {
         turnId,
         encoding ?? EncodingTypes.PCM_S16LE
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      throw new Error(`Failed to stream audio chunk: ${error}`);
+      throw new Error(`Failed to stream audio chunk: ${error.message || error}`);
     }
   }
 
@@ -181,9 +181,9 @@ export class ExpoPlayAudioStream {
         turnId,
         encoding ?? EncodingTypes.PCM_S16LE
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      throw new Error(`Failed to enqueue audio: ${error}`);
+      throw new Error(`Failed to enqueue audio: ${error.message || error}`);
     }
   }
 
@@ -247,14 +247,14 @@ export class ExpoPlayAudioStream {
   /**
    * Starts microphone streaming.
    * @param {RecordingConfig} recordingConfig - The recording configuration.
-   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: Subscription}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
+   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
    * @throws {Error} If the recording fails to start.
    */
   static async startMicrophone(recordingConfig: RecordingConfig): Promise<{
     recordingResult: StartRecordingResult;
-    subscription?: Subscription;
+    subscription?: EventSubscription;
   }> {
-    let subscription: Subscription | undefined;
+    let subscription: EventSubscription | undefined;
     try {
       const { onAudioStream, ...options } = recordingConfig;
 
@@ -321,12 +321,12 @@ export class ExpoPlayAudioStream {
    * - fileUri: URI of the recording file
    * - eventDataSize: Size of the current audio data chunk
    * - totalSize: Total size of recorded audio so far
-   * @returns {Subscription} A subscription object that can be used to unsubscribe from the events
+   * @returns {EventSubscription} A subscription object that can be used to unsubscribe from the events
    * @throws {Error} If encoded audio data is missing from the event
    */
   static subscribeToAudioEvents(
     onMicrophoneStream: (event: AudioDataEvent) => Promise<void>
-  ): Subscription {
+  ) {
     return addAudioEventListener(async (event: AudioEventPayload) => {
       const { fileUri, deltaSize, totalSize, position, encoded, soundLevel } =
         event;
@@ -349,11 +349,11 @@ export class ExpoPlayAudioStream {
    * Subscribes to events emitted when a sound chunk has finished playing.
    * @param onSoundChunkPlayed - Callback function that will be called when a sound chunk is played.
    * The callback receives a SoundChunkPlayedEventPayload indicating if this was the final chunk.
-   * @returns {Subscription} A subscription object that can be used to unsubscribe from the events.
+   * @returns {EventSubscription} A subscription object that can be used to unsubscribe from the events.
    */
   static subscribeToSoundChunkPlayed(
     onSoundChunkPlayed: (event: SoundChunkPlayedEventPayload) => Promise<void>
-  ): Subscription {
+  ) {
     return addSoundChunkPlayedListener(onSoundChunkPlayed);
   }
 
@@ -361,12 +361,12 @@ export class ExpoPlayAudioStream {
    * Subscribes to events emitted by the audio stream module, for advanced use cases.
    * @param eventName - The name of the event to subscribe to.
    * @param onEvent - Callback function that will be called when the event is emitted.
-   * @returns {Subscription} A subscription object that can be used to unsubscribe from the events.
+   * @returns {EventSubscription} A subscription object that can be used to unsubscribe from the events.
    */
   static subscribe<T extends unknown>(
     eventName: string,
     onEvent: (event: T | undefined) => Promise<void>
-  ): Subscription {
+  ) {
     return subscribeToEvent(eventName, onEvent);
   }
 
@@ -380,9 +380,9 @@ export class ExpoPlayAudioStream {
   static async playWav(wavBase64: string) {
     try {
       await ExpoPlayAudioStreamModule.playWav(wavBase64);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      throw new Error(`Failed to play wav: ${error}`);
+      throw new Error(`Failed to play wav: ${error.message || error}`);
     }
   }
 

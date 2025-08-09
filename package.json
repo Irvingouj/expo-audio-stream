@@ -1,7 +1,7 @@
 {
   "name": "@mykin-ai/expo-audio-stream",
   "version": "0.2.26",
-  "description": "Expo Play Audio Stream module",
+  "description": "Expo Play Audio Stream module - Fork of expo-audio-stream with additional features and Expo SDK 52+ support",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "source": "src/index.ts",
@@ -20,7 +20,12 @@
     "react-native",
     "expo",
     "expo-play-audio-stream",
-    "ExpoPlayAudioStream"
+    "ExpoPlayAudioStream",
+    "audio-stream",
+    "voice-recording",
+    "real-time-audio",
+    "fork",
+    "expo-audio-stream"
   ],
   "repository": "https://github.com/mykin-ai/expo-audio-stream",
   "bugs": {
@@ -29,10 +34,18 @@
   "author": "pax <nzpopa@users.noreply.github.com> (https://github.com/hyphen-id)",
   "license": "MIT",
   "homepage": "https://github.com/mykin-ai/expo-audio-stream#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/mykin-ai"
+  },
+  "originalRepository": {
+    "type": "git",
+    "url": "https://github.com/expo/expo-audio-stream.git"
+  },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "expo-module-scripts": "^3.5.2",
-    "expo-modules-core": "^1.12.15"
+    "@types/react": "^18.3.3",
+    "expo-module-scripts": "4.1.10",
+    "expo-modules-core": "2.5.0"
   },
   "peerDependencies": {
     "expo": "*",

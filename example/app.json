@@ -34,6 +34,9 @@
       }
     },
     "owner": "mykin-ai",
-    "plugins": ["../app.plugin.js"]
+    "plugins": [
+      "../app.plugin.js",
+      "expo-audio"
+    ]
   }
 }

@@ -3529,12 +3529,24 @@ __metadata:
     "@types/react": "npm:~19.0.10"
     "@types/uuid": "npm:^10"
     expo: "npm:^53.0.20"
+    expo-audio: "npm:~0.4.8"
     expo-av: "npm:~15.1.7"
     react: "npm:19.0.0"
     react-native: "npm:0.79.5"
     typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
+
+"expo-audio@npm:~0.4.8":
+  version: 0.4.8
+  resolution: "expo-audio@npm:0.4.8"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/23c16252856a7f32b3b707ee566ec2b0c9fb0324f2bf785e752174b8104b5850ce16de3f94723b6c84c2b86dfd3ae5e98aa885c4d2ac67d59382e13560ae325c
+  languageName: node
+  linkType: hard
 
 "expo-av@npm:~15.1.7":
   version: 15.1.7

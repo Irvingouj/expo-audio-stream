@@ -7,8 +7,8 @@ import { sampleC } from "./samples/sample-c";
 import {
   AudioDataEvent,
 } from "@mykin-ai/expo-audio-stream/types";
-import { Subscription } from "expo-modules-core";
-import { Audio } from 'expo-av';
+import { EventSubscription } from "expo-modules-core";
+import * as Audio from 'expo-audio';
 
 const ANDROID_SAMPLE_RATE = 16000;
 const IOS_SAMPLE_RATE = 48000;
@@ -23,13 +23,13 @@ const turnId2 = 'turnId2';
 export default function App() {
 
 
-  const eventListenerSubscriptionRef = useRef<Subscription | undefined>(undefined);
+  const eventListenerSubscriptionRef = useRef<EventSubscription | undefined>(undefined);
 
   const onAudioCallback = async (audio: AudioDataEvent) => {
     console.log(audio.data.slice(0, 100));
   };
 
-  const playEventsListenerSubscriptionRef = useRef<Subscription | undefined>(undefined);
+  const playEventsListenerSubscriptionRef = useRef<EventSubscription | undefined>(undefined);
 
   useEffect(() => {
     playEventsListenerSubscriptionRef.current = ExpoPlayAudioStream.subscribeToSoundChunkPlayed(async (event) => {
@@ -142,16 +142,16 @@ const styles = StyleSheet.create({
 });
 
 export const requestMicrophonePermission = async (): Promise<boolean> => {
-  const { granted } = await Audio.getPermissionsAsync();
+  const { granted } = await Audio.getRecordingPermissionsAsync();
   let permissionGranted = granted;
   if (!permissionGranted) {
-    const { granted: grantedPermission } = await Audio.requestPermissionsAsync();
+    const { granted: grantedPermission } = await Audio.requestRecordingPermissionsAsync();
     permissionGranted = grantedPermission;
   }
   return permissionGranted;
 };
 
 export const isMicrophonePermissionGranted = async (): Promise<boolean> => {
-  const { granted } = await Audio.getPermissionsAsync();
+  const { granted } = await Audio.getRecordingPermissionsAsync();
   return granted;
 };
