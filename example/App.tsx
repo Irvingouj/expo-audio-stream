@@ -4,11 +4,9 @@ import { useEffect, useRef } from "react";
 import { sampleA } from "./samples/sample-a";
 import { sampleB } from "./samples/sample-b";
 import { sampleC } from "./samples/sample-c";
-import {
-  AudioDataEvent,
-} from "@irvingouj/expo-audio-stream/types";
+import { AudioDataEvent } from "@irvingouj/expo-audio-stream/types";
 import { EventSubscription } from "expo-modules-core";
-import * as Audio from 'expo-audio';
+import * as Audio from "expo-audio";
 
 const ANDROID_SAMPLE_RATE = 16000;
 const IOS_SAMPLE_RATE = 48000;
@@ -16,32 +14,34 @@ const CHANNELS = 1;
 const ENCODING = "pcm_16bit";
 const RECORDING_INTERVAL = 100;
 
-const turnId1 = 'turnId1';
-const turnId2 = 'turnId2';
-
+const turnId1 = "turnId1";
+const turnId2 = "turnId2";
 
 export default function App() {
-
-
-  const eventListenerSubscriptionRef = useRef<EventSubscription | undefined>(undefined);
+  const eventListenerSubscriptionRef = useRef<EventSubscription | undefined>(
+    undefined
+  );
 
   const onAudioCallback = async (audio: AudioDataEvent) => {
     console.log(audio.data.slice(0, 100));
   };
 
-  const playEventsListenerSubscriptionRef = useRef<EventSubscription | undefined>(undefined);
+  const playEventsListenerSubscriptionRef = useRef<
+    EventSubscription | undefined
+  >(undefined);
 
   useEffect(() => {
-    playEventsListenerSubscriptionRef.current = ExpoPlayAudioStream.subscribeToSoundChunkPlayed(async (event) => {
-      console.log(event);
-    });
+    playEventsListenerSubscriptionRef.current =
+      ExpoPlayAudioStream.subscribeToSoundChunkPlayed(async (event) => {
+        console.log(event);
+      });
 
     return () => {
       if (playEventsListenerSubscriptionRef.current) {
         playEventsListenerSubscriptionRef.current.remove();
         playEventsListenerSubscriptionRef.current = undefined;
       }
-    }
+    };
   }, []);
 
   return (
@@ -80,7 +80,7 @@ export default function App() {
         }}
         title="Play WAV fragment"
       />
-       <View style={{ height: 10, marginBottom: 10 }}>
+      <View style={{ height: 10, marginBottom: 10 }}>
         <Text>====================</Text>
       </View>
       <Button
@@ -93,24 +93,24 @@ export default function App() {
           }
           const sampleRate =
             Platform.OS === "ios" ? IOS_SAMPLE_RATE : ANDROID_SAMPLE_RATE;
-          const { recordingResult, subscription } = await ExpoPlayAudioStream.startMicrophone({
-            interval: RECORDING_INTERVAL,
-            sampleRate,
-            channels: CHANNELS,
-            encoding: ENCODING,
-            onAudioStream: onAudioCallback,
-          });
-          console.log(JSON.stringify(recordingResult, null, 2 ));
+          const { recordingResult, subscription } =
+            await ExpoPlayAudioStream.startMicrophone({
+              interval: RECORDING_INTERVAL,
+              sampleRate,
+              channels: CHANNELS,
+              encoding: ENCODING,
+              onAudioStream: onAudioCallback,
+            });
+          console.log(JSON.stringify(recordingResult, null, 2));
           eventListenerSubscriptionRef.current = subscription;
         }}
         title="Start Recording"
       />
-       <View style={{ height: 10, marginBottom: 10 }}>
+      <View style={{ height: 10, marginBottom: 10 }}>
         <Text>====================</Text>
       </View>
       <Button
         onPress={async () => {
-          
           await ExpoPlayAudioStream.stopMicrophone();
           if (eventListenerSubscriptionRef.current) {
             eventListenerSubscriptionRef.current.remove();
@@ -119,7 +119,62 @@ export default function App() {
         }}
         title="Stop Recording"
       />
-       <View style={{ height: 10, marginBottom: 10 }}>
+      <View style={{ height: 10, marginBottom: 10 }}>
+        <Text>====================</Text>
+      </View>
+      <Button
+        onPress={async () => {
+          if (!isMicrophonePermissionGranted()) {
+            const permissionGranted = await requestMicrophonePermission();
+            if (!permissionGranted) {
+              return;
+            }
+          }
+          // Test with NO sample rate - should use hardware default
+          const { recordingResult, subscription } =
+            await ExpoPlayAudioStream.startMicrophone({
+              interval: RECORDING_INTERVAL,
+              channels: CHANNELS,
+              encoding: ENCODING,
+              onAudioStream: onAudioCallback,
+            });
+          console.log(
+            "Hardware default sample rate:",
+            JSON.stringify(recordingResult, null, 2)
+          );
+          eventListenerSubscriptionRef.current = subscription;
+        }}
+        title="Record (Hardware Default)"
+      />
+      <View style={{ height: 10, marginBottom: 10 }}>
+        <Text>====================</Text>
+      </View>
+      <Button
+        onPress={async () => {
+          if (!isMicrophonePermissionGranted()) {
+            const permissionGranted = await requestMicrophonePermission();
+            if (!permissionGranted) {
+              return;
+            }
+          }
+          // Test with specific 16kHz sample rate (for ML models)
+          const { recordingResult, subscription } =
+            await ExpoPlayAudioStream.startMicrophone({
+              interval: RECORDING_INTERVAL,
+              sampleRate: 16000,
+              channels: CHANNELS,
+              encoding: ENCODING,
+              onAudioStream: onAudioCallback,
+            });
+          console.log(
+            "16kHz sample rate:",
+            JSON.stringify(recordingResult, null, 2)
+          );
+          eventListenerSubscriptionRef.current = subscription;
+        }}
+        title="Record (16kHz Override)"
+      />
+      <View style={{ height: 10, marginBottom: 10 }}>
         <Text>====================</Text>
       </View>
       <Button
@@ -145,7 +200,8 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
   const { granted } = await Audio.getRecordingPermissionsAsync();
   let permissionGranted = granted;
   if (!permissionGranted) {
-    const { granted: grantedPermission } = await Audio.requestRecordingPermissionsAsync();
+    const { granted: grantedPermission } =
+      await Audio.requestRecordingPermissionsAsync();
     permissionGranted = grantedPermission;
   }
   return permissionGranted;

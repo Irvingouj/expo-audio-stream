@@ -62,8 +62,11 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
         ///     - `maxRecentDataDuration`: The maximum duration of recent data to keep for processing (default is 10.0 seconds).
         ///   - promise: A promise to resolve with the recording settings or reject with an error.
         AsyncFunction("startRecording") { (options: [String: Any], promise: Promise) in
-            // Extract settings from provided options, using default values if necessary
-            let sampleRate = options["sampleRate"] as? Double ?? 16000.0 // it fails if not 48000, why?
+            // Get the hardware's current sample rate
+            let hardwareSampleRate = AVAudioSession.sharedInstance().sampleRate
+            
+            // Extract settings from provided options, using hardware defaults if necessary
+            let sampleRate = options["sampleRate"] as? Double ?? hardwareSampleRate
             let numberOfChannels = options["channelConfig"] as? Int ?? 1 // Mono channel configuration
             let bitDepth = options["audioFormat"] as? Int ?? 16 // 16bits
             let interval = options["interval"] as? Int ?? 1000
@@ -238,9 +241,12 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
         }
         
         AsyncFunction("startMicrophone") { (options: [String: Any], promise: Promise) in
+            // Get the hardware's current sample rate
+            let hardwareSampleRate = AVAudioSession.sharedInstance().sampleRate
+            
             // Create recording settings
-            // Extract settings from provided options, using default values if necessary
-            let sampleRate = options["sampleRate"] as? Double ?? 16000.0 // it fails if not 48000, why?
+            // Extract settings from provided options, using hardware defaults if necessary
+            let sampleRate = options["sampleRate"] as? Double ?? hardwareSampleRate
             let numberOfChannels = options["channelConfig"] as? Int ?? 1 // Mono channel configuration
             let bitDepth = options["audioFormat"] as? Int ?? 16 // 16bits
             let interval = options["interval"] as? Int ?? 1000

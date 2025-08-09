@@ -87,17 +87,11 @@ class Microphone {
             audioEngine.stop()
         }
        
-        var newSettings = settings  // Make settings mutable
-        
-        // Determine the commonFormat based on bitDepth
-        let commonFormat: AVAudioCommonFormat = AudioUtils.getCommonFormat(depth: newSettings.bitDepth)
-        
         emissionInterval = max(100.0, Double(intervalMilliseconds)) / 1000.0
         lastEmissionTime = Date()
         accumulatedData.removeAll()
         totalDataSize = 0
         
-        let session = AVAudioSession.sharedInstance()
         Logger.debug("Debug: Configuring audio session with sample rate: \(settings.sampleRate) Hz")
         
         // Check if the input node supports the desired format
