@@ -26,7 +26,7 @@ export interface AudioEventPayload {
     totalSize: number
     mimeType: string
     streamUuid: string
-    soundLevel?: number
+    soundLevel?: number // Volume level in dBFS (typically -160.0 to 0.0)
 }
 
 export type SoundChunkPlayedEventPayload = {

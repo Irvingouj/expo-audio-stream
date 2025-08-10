@@ -479,7 +479,8 @@ class AudioSessionManager {
         if !accumulatedData.isEmpty {
             let currentTime = Date()
             let recordingTime = currentTime.timeIntervalSince(startTime)
-            delegate?.audioStreamManager(self, didReceiveAudioData: accumulatedData, recordingTime: recordingTime, totalDataSize: totalDataSize)
+            // Use -160.0 as default sound level for final data emission (silence level)
+            delegate?.audioStreamManager(self, didReceiveAudioData: accumulatedData, recordingTime: recordingTime, totalDataSize: totalDataSize, soundLevel: -160.0)
             accumulatedData.removeAll()
         }
         
@@ -773,8 +774,11 @@ class AudioSessionManager {
                 // Copy accumulated data for processing
                 let dataToProcess = accumulatedData
                 
-                // Emit the processed audio data
-                self.delegate?.audioStreamManager(self, didReceiveAudioData: dataToProcess, recordingTime: recordingTime, totalDataSize: totalDataSize)
+                // Calculate power level from the current buffer
+                let powerLevel: Float = AudioUtils.calculatePowerLevel(from: finalBuffer)
+                
+                // Emit the processed audio data with sound level
+                self.delegate?.audioStreamManager(self, didReceiveAudioData: dataToProcess, recordingTime: recordingTime, totalDataSize: totalDataSize, soundLevel: powerLevel)
                 
                 self.lastEmissionTime = currentTime // Update last emission time
                 self.lastEmittedSize = totalDataSize

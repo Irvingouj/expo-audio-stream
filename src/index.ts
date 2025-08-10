@@ -63,7 +63,7 @@ export class ExpoPlayAudioStream {
           fileUri,
           eventDataSize: deltaSize,
           totalSize,
-          soundLevel,
+          soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
         });
       });
     }
@@ -281,7 +281,7 @@ export class ExpoPlayAudioStream {
               fileUri,
               eventDataSize: deltaSize,
               totalSize,
-              soundLevel,
+              soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
             });
           }
         );
@@ -340,7 +340,7 @@ export class ExpoPlayAudioStream {
         fileUri,
         eventDataSize: deltaSize,
         totalSize,
-        soundLevel,
+        soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
       });
     });
   }

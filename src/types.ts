@@ -57,7 +57,7 @@ export interface AudioDataEvent {
     fileUri: string
     eventDataSize: number
     totalSize: number
-    soundLevel?: number
+    soundLevel: number // Volume level in dBFS (typically -160.0 to 0.0)
 }
 
 
