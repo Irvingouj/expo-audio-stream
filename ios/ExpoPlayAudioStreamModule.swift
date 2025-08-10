@@ -47,52 +47,45 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             promptForMicrophoneModes()
         }
         
-        /// Asynchronously starts audio recording with the given settings.
+        /// Asynchronously starts audio recording to file with volume feedback.
         ///
         /// - Parameters:
         ///   - options: A dictionary containing:
-        ///     - `sampleRate`: The sample rate for recording (default is 16000.0).
-        ///     - `channelConfig`: The number of channels (default is 1 for mono).
-        ///     - `audioFormat`: The bit depth for recording (default is 16 bits).
-        ///     - `interval`: The interval in milliseconds at which to emit recording data (default is 1000 ms).
-        ///     - `enableProcessing`: Boolean to enable/disable audio processing (default is false).
-        ///     - `pointsPerSecond`: The number of data points to extract per second of audio (default is 20).
-        ///     - `algorithm`: The algorithm to use for extraction (default is "rms").
-        ///     - `featureOptions`: A dictionary of feature options to extract (default is empty).
-        ///     - `maxRecentDataDuration`: The maximum duration of recent data to keep for processing (default is 10.0 seconds).
+        ///     - `interval`: The interval in milliseconds at which to emit volume level data (default is 1000 ms).
         ///   - promise: A promise to resolve with the recording settings or reject with an error.
+        ///   
+        /// - Note: This records audio to an M4A file using hardware defaults and emits only volume levels (not raw audio data) via AudioData events.
         AsyncFunction("startRecording") { (options: [String: Any], promise: Promise) in
-            // Get the hardware's current sample rate
-            let hardwareSampleRate = AVAudioSession.sharedInstance().sampleRate
-            
-            // Extract settings from provided options, using hardware defaults if necessary
-            let sampleRate = options["sampleRate"] as? Double ?? hardwareSampleRate
-            let numberOfChannels = options["channelConfig"] as? Int ?? 1 // Mono channel configuration
-            let bitDepth = options["audioFormat"] as? Int ?? 16 // 16bits
+            // For recording, we only accept interval - all other settings are determined by hardware
             let interval = options["interval"] as? Int ?? 1000
             
-            
-            // Create recording settings
-            let settings = RecordingSettings(
-                sampleRate: sampleRate,
-                desiredSampleRate: sampleRate,
-                numberOfChannels: numberOfChannels,
-                bitDepth: bitDepth,
-                maxRecentDataDuration: nil,
-                pointsPerSecond: nil
-            )
-            
-            if let result = self.audioSessionManager.startRecording(settings: settings, intervalMilliseconds: interval) {
+            if let result = self.audioSessionManager.startRecording(intervalMilliseconds: interval) {
                 if let resError = result.error {
                     promise.reject("AUDIO_RECORDING_ERROR", resError)
                 } else {
-                    let resultDict: [String: Any] = [
-                        "fileUri": result.fileUri ?? "",
-                        "channels": result.channels ?? 1,
-                        "bitDepth": result.bitDepth ?? 16,
-                        "sampleRate": result.sampleRate ?? 48000,
-                        "mimeType": result.mimeType ?? "",
-                    ]
+                    // Only include actual values that exist in the result
+                    var resultDict: [String: Any] = [:]
+                    
+                    if let fileUri = result.fileUri {
+                        resultDict["fileUri"] = fileUri
+                    }
+                    
+                    if let channels = result.channels {
+                        resultDict["channels"] = channels
+                    }
+                    
+                    if let bitDepth = result.bitDepth {
+                        resultDict["bitDepth"] = bitDepth
+                    }
+                    
+                    if let sampleRate = result.sampleRate {
+                        resultDict["sampleRate"] = sampleRate
+                    }
+                    
+                    if let mimeType = result.mimeType {
+                        resultDict["mimeType"] = mimeType
+                    }
+                    
                     promise.resolve(resultDict)
                 }
             } else {
@@ -115,25 +108,49 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
         /// - Parameters:
         ///   - promise: A promise to resolve with the recording result or reject with an error.
         AsyncFunction("stopRecording") { (promise: Promise) in
-            if let recordingResult = self.audioSessionManager.stopRecording() {
+            self.audioSessionManager.stopRecording { recordingResult in
+                guard let recordingResult = recordingResult else {
+                    promise.reject("AUDIO_RECORDING_ERROR", "Failed to stop recording or no recording in progress.")
+                    return
+                }
                 
                 if let resError = recordingResult.error {
                     promise.reject("AUDIO_RECORDING_ERROR", resError)
                 } else {
-                // Convert RecordingResult to a dictionary
-                let resultDict: [String: Any] = [
-                    "fileUri": recordingResult.fileUri,
-                    "filename": recordingResult.filename ?? "",
-                    "durationMs": recordingResult.duration ?? 0,
-                    "size": recordingResult.size ?? 0,
-                    "channels": recordingResult.channels ?? 1,
-                    "bitDepth": recordingResult.bitDepth ?? 16,
-                    "sampleRate": recordingResult.sampleRate ?? 48000,
-                    "mimeType": recordingResult.mimeType ?? "",
-                ]
-                promise.resolve(resultDict)}
-            } else {
-                promise.reject("AUDIO_RECORDING_ERROR", "Failed to stop recording or no recording in progress.")
+                    // Convert RecordingResult to a dictionary - only include values that exist
+                    var resultDict: [String: Any] = [:]
+                    
+                    resultDict["fileUri"] = recordingResult.fileUri
+                    
+                    if let filename = recordingResult.filename {
+                        resultDict["filename"] = filename
+                    }
+                    
+                    if let duration = recordingResult.duration {
+                        resultDict["durationMs"] = duration
+                    }
+                    
+                    if let size = recordingResult.size {
+                        resultDict["size"] = size
+                    }
+                    
+                    if let channels = recordingResult.channels {
+                        resultDict["channels"] = channels
+                    }
+                    
+                    if let bitDepth = recordingResult.bitDepth {
+                        resultDict["bitDepth"] = bitDepth
+                    }
+                    
+                    if let sampleRate = recordingResult.sampleRate {
+                        resultDict["sampleRate"] = sampleRate
+                    }
+                    
+                    if let mimeType = recordingResult.mimeType {
+                        resultDict["mimeType"] = mimeType
+                    }
+                    promise.resolve(resultDict)
+                }
             }
         }
         
@@ -384,39 +401,18 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
         AVCaptureDevice.showSystemUserInterface(.microphoneModes)
     }
     
-    /// Handles the reception of audio data from the AudioStreamManager.
+    /// Handles volume level updates during file recording.
     ///
     /// - Parameters:
-    ///   - manager: The AudioStreamManager instance.
-    ///   - data: The received audio data.
-    ///   - recordingTime: The current recording time.
-    ///   - totalDataSize: The total size of the received audio data.
-    func audioStreamManager(_ manager: AudioSessionManager, didReceiveAudioData data: Data, recordingTime: TimeInterval, totalDataSize: Int64, soundLevel: Float) {
-        guard let fileURL = manager.recordingFileURL,
-              let settings = manager.recordingSettings else { return }
+    ///   - manager: The AudioSessionManager instance.
+    ///   - soundLevel: The current volume level in dBFS.
+    func audioSessionManager(_ manager: AudioSessionManager, didUpdateRecordingVolume soundLevel: Float) {
+        guard let fileURL = manager.recordingFileURL else { return }
         
-        let encodedData = data.base64EncodedString()
-        
-        // Assuming `lastEmittedSize` and `streamUuid` are tracked within `AudioStreamManager`
-        let deltaSize = data.count  // This needs to be calculated based on what was last sent if using chunks
-        let fileSize = totalDataSize  // Total data size in bytes
-        
-        // Calculate the position in milliseconds using the lastEmittedSize
-        let sampleRate = settings.sampleRate
-        let channels = Double(settings.numberOfChannels)
-        let bitDepth = Double(settings.bitDepth)
-        let position = Int((Double(manager.lastEmittedSize) / (sampleRate * channels * (bitDepth / 8))) * 1000)
-        
-        // Construct the event payload similar to Android
+        // Construct the event payload for recording (volume feedback only)
         let eventBody: [String: Any] = [
+            "type": "recording",
             "fileUri": fileURL.absoluteString,
-            "lastEmittedSize": manager.lastEmittedSize,  // Needs to be maintained within AudioStreamManager
-            "position": position, // Add position of the chunk in ms since
-            "encoded": encodedData,
-            "deltaSize": deltaSize,
-            "totalSize": fileSize,
-            "mimeType": manager.mimeType,
-            "streamUuid": UUID().uuidString,
             "soundLevel": soundLevel
         ]
         // Emit the event to JavaScript
@@ -482,14 +478,15 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
     
     func onMicrophoneData(_ microphoneData: Data, _ soundLevel: Float?) {
         let encodedData = microphoneData.base64EncodedString()
-        // Construct the event payload similar to Android
+        // Construct the event payload for microphone streaming (with audio data)
         let eventBody: [String: Any] = [
+            "type": "microphone",
             "fileUri": "",
             "lastEmittedSize": 0,
             "position": 0, // Add position of the chunk in ms since
             "encoded": encodedData,
-            "deltaSize": 0,
-            "totalSize": 0,
+            "deltaSize": microphoneData.count,
+            "totalSize": microphoneData.count,
             "mimeType": "",
             "streamUuid": UUID().uuidString,
             "soundLevel": soundLevel ?? -160

@@ -16,18 +16,34 @@ function addListener(eventType: string, listener: Listener): EventSubscription {
 
 // Example listener setup - remove unused test listener
 
-export interface AudioEventPayload {
-    encoded?: string
-    buffer?: Float32Array
+// Base payload interface
+interface BaseAudioEventPayload {
+    type: 'recording' | 'microphone'
+    soundLevel: number // Volume level in dBFS (typically -160.0 to 0.0)
+}
+
+// Recording payload - only contains volume feedback
+export interface RecordingEventPayload extends BaseAudioEventPayload {
+    type: 'recording'
     fileUri: string
-    lastEmittedSize: number
-    position: number
+}
+
+// Microphone streaming payload - contains full audio data
+export interface MicrophoneEventPayload extends BaseAudioEventPayload {
+    type: 'microphone'
+    encoded: string
+    buffer?: Float32Array
+    fileUri: string // Empty for microphone streaming
+    lastEmittedSize?: number
+    position?: number
     deltaSize: number
     totalSize: number
-    mimeType: string
-    streamUuid: string
-    soundLevel?: number // Volume level in dBFS (typically -160.0 to 0.0)
+    mimeType?: string
+    streamUuid?: string
 }
+
+// Union type for all possible event payloads
+export type AudioEventPayload = RecordingEventPayload | MicrophoneEventPayload
 
 export type SoundChunkPlayedEventPayload = {
     isFinal: boolean

@@ -2,9 +2,13 @@ import { EventSubscription } from 'expo-modules-core'
 import ExpoPlayAudioStreamModule from "./ExpoPlayAudioStreamModule";
 import {
   AudioDataEvent,
+  RecordingAudioDataEvent,
+  MicrophoneAudioDataEvent,
   AudioRecording,
   RecordingConfig,
+  MicrophoneConfig,
   StartRecordingResult,
+  StartMicrophoneResult,
   SoundConfig,
   PlaybackMode,
   Encoding,
@@ -25,6 +29,26 @@ import {
 
 const SuspendSoundEventTurnId = "suspend-sound-events";
 
+// Helper function to transform raw event payload to proper AudioDataEvent
+function transformAudioEventPayload(event: AudioEventPayload): AudioDataEvent {
+  if (event.type === 'recording') {
+    return {
+      type: 'recording',
+      fileUri: event.fileUri,
+      soundLevel: event.soundLevel,
+    } as RecordingAudioDataEvent;
+  } else {
+    return {
+      type: 'microphone',
+      data: event.encoded,
+      position: event.position ?? 0,
+      eventDataSize: event.deltaSize,
+      totalSize: event.totalSize,
+      soundLevel: event.soundLevel,
+    } as MicrophoneAudioDataEvent;
+  }
+}
+
 export class ExpoPlayAudioStream {
   /**
    * Destroys the audio stream module, cleaning up all resources.
@@ -36,10 +60,11 @@ export class ExpoPlayAudioStream {
   }
 
   /**
-   * Starts microphone recording.
+   * Starts audio recording to file with volume feedback.
    * @param {RecordingConfig} recordingConfig - Configuration for the recording.
-   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
+   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to volume events.
    * @throws {Error} If the recording fails to start.
+   * @note Records audio to an M4A file and emits only volume levels (not raw audio data) via AudioData events.
    */
   static async startRecording(recordingConfig: RecordingConfig): Promise<{
     recordingResult: StartRecordingResult;
@@ -51,20 +76,8 @@ export class ExpoPlayAudioStream {
 
     if (onAudioStream && typeof onAudioStream == "function") {
       subscription = addAudioEventListener(async (event: AudioEventPayload) => {
-        const { fileUri, deltaSize, totalSize, position, encoded, soundLevel } =
-          event;
-        if (!encoded) {
-          console.error(`[ExpoPlayAudioStream] Encoded audio data is missing`);
-          throw new Error("Encoded audio data is missing");
-        }
-        onAudioStream?.({
-          data: encoded,
-          position,
-          fileUri,
-          eventDataSize: deltaSize,
-          totalSize,
-          soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
-        });
+        const transformedEvent = transformAudioEventPayload(event);
+        onAudioStream?.(transformedEvent);
       });
     }
 
@@ -245,44 +258,29 @@ export class ExpoPlayAudioStream {
   }
 
   /**
-   * Starts microphone streaming.
-   * @param {RecordingConfig} recordingConfig - The recording configuration.
-   * @returns {Promise<{recordingResult: StartRecordingResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to audio events.
-   * @throws {Error} If the recording fails to start.
+   * Starts microphone streaming for real-time audio data.
+   * @param {MicrophoneConfig} microphoneConfig - The microphone streaming configuration.
+   * @returns {Promise<{recordingResult: StartMicrophoneResult, subscription: EventSubscription | undefined}>} A promise that resolves to an object containing the recording result and a subscription to audio data events.
+   * @throws {Error} If the microphone streaming fails to start.
    */
-  static async startMicrophone(recordingConfig: RecordingConfig): Promise<{
-    recordingResult: StartRecordingResult;
+  static async startMicrophone(microphoneConfig: MicrophoneConfig): Promise<{
+    recordingResult: StartMicrophoneResult;
     subscription?: EventSubscription;
   }> {
     let subscription: EventSubscription | undefined;
     try {
-      const { onAudioStream, ...options } = recordingConfig;
+      const { onAudioStream, ...options } = microphoneConfig;
 
       if (onAudioStream && typeof onAudioStream == "function") {
         subscription = addAudioEventListener(
           async (event: AudioEventPayload) => {
-            const {
-              fileUri,
-              deltaSize,
-              totalSize,
-              position,
-              encoded,
-              soundLevel,
-            } = event;
-            if (!encoded) {
-              console.error(
-                `[ExpoPlayAudioStream] Encoded audio data is missing`
-              );
-              throw new Error("Encoded audio data is missing");
+            // Type guard ensures the event has the right structure
+            if (event.type === 'microphone' && !event.encoded) {
+              console.error(`[ExpoPlayAudioStream] Encoded audio data is missing for microphone stream`);
+              throw new Error("Encoded audio data is missing for microphone stream");
             }
-            onAudioStream?.({
-              data: encoded,
-              position,
-              fileUri,
-              eventDataSize: deltaSize,
-              totalSize,
-              soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
-            });
+            const transformedEvent = transformAudioEventPayload(event);
+            onAudioStream?.(transformedEvent);
           }
         );
       }
@@ -315,33 +313,21 @@ export class ExpoPlayAudioStream {
    * Subscribes to audio events emitted during recording/streaming.
    * @param onMicrophoneStream - Callback function that will be called when audio data is received.
    * The callback receives an AudioDataEvent containing:
-   * - data: Base64 encoded audio data at original sample rate
-   * - data16kHz: Optional base64 encoded audio data resampled to 16kHz
+   * - data: For recording: empty data (volume feedback only). For streaming: base64 encoded audio data
    * - position: Current position in the audio stream
-   * - fileUri: URI of the recording file
-   * - eventDataSize: Size of the current audio data chunk
-   * - totalSize: Total size of recorded audio so far
+   * - fileUri: URI of the recording file (empty for streaming)
+   * - eventDataSize: Size of the current audio data chunk (0 for recording volume events)
+   * - totalSize: Total size of recorded audio so far (0 for recording volume events)
+   * - soundLevel: Volume level in dBFS (-160.0 to 0.0)
    * @returns {EventSubscription} A subscription object that can be used to unsubscribe from the events
-   * @throws {Error} If encoded audio data is missing from the event
+   * @note For file recording, only soundLevel contains meaningful data. For streaming, all fields are populated.
    */
   static subscribeToAudioEvents(
-    onMicrophoneStream: (event: AudioDataEvent) => Promise<void>
+    onAudioStream: (event: AudioDataEvent) => Promise<void>
   ) {
     return addAudioEventListener(async (event: AudioEventPayload) => {
-      const { fileUri, deltaSize, totalSize, position, encoded, soundLevel } =
-        event;
-      if (!encoded) {
-        console.error(`[ExpoPlayAudioStream] Encoded audio data is missing`);
-        throw new Error("Encoded audio data is missing");
-      }
-      onMicrophoneStream?.({
-        data: encoded,
-        position,
-        fileUri,
-        eventDataSize: deltaSize,
-        totalSize,
-        soundLevel: soundLevel ?? -160.0, // Default to silence level if not provided
-      });
+      const transformedEvent = transformAudioEventPayload(event);
+      onAudioStream?.(transformedEvent);
     });
   }
 
@@ -423,12 +409,16 @@ export class ExpoPlayAudioStream {
 
 export {
   AudioDataEvent,
+  RecordingAudioDataEvent,
+  MicrophoneAudioDataEvent,
   SoundChunkPlayedEventPayload,
   DeviceReconnectedReason,
   DeviceReconnectedEventPayload,
   AudioRecording,
   RecordingConfig,
+  MicrophoneConfig,
   StartRecordingResult,
+  StartMicrophoneResult,
   AudioEvents,
   SuspendSoundEventTurnId,
   SoundConfig,

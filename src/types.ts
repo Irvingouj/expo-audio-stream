@@ -50,22 +50,49 @@ export interface StartRecordingResult {
     sampleRate?: SampleRate
 }
 
-export interface AudioDataEvent {
-    data: string | Float32Array
-    data16kHz?: string | Float32Array
-    position: number
-    fileUri: string
-    eventDataSize: number
-    totalSize: number
+export interface StartMicrophoneResult {
+    fileUri?: string // Empty for microphone streaming
+    mimeType?: string
+    channels?: number
+    bitDepth?: BitDepth
+    sampleRate?: SampleRate
+}
+
+// Base interface for common properties
+interface BaseAudioDataEvent {
     soundLevel: number // Volume level in dBFS (typically -160.0 to 0.0)
 }
 
+// Recording events only contain volume feedback (no audio data)
+export interface RecordingAudioDataEvent extends BaseAudioDataEvent {
+    type: 'recording'
+    fileUri: string // URI of the recording file
+}
+
+// Microphone streaming events contain full audio data
+export interface MicrophoneAudioDataEvent extends BaseAudioDataEvent {
+    type: 'microphone'
+    data: string | Float32Array // Base64 encoded audio data or raw buffer
+    data16kHz?: string | Float32Array // Optional resampled data
+    position: number // Current position in the audio stream
+    eventDataSize: number // Size of the current audio data chunk
+    totalSize: number // Total size of streamed audio so far
+}
+
+// Discriminated union type
+export type AudioDataEvent = RecordingAudioDataEvent | MicrophoneAudioDataEvent
+
 
 export interface RecordingConfig {
+    interval?: number // Interval in milliseconds at which to emit volume level data (default is 1000)
+    onAudioStream?: (event: AudioDataEvent) => Promise<void> // Callback function to handle volume events
+}
+
+export interface MicrophoneConfig {
     sampleRate?: SampleRate // Sample rate for recording
     channels?: 1 | 2 // 1 or 2 (MONO or STEREO)
     encoding?: RecordingEncodingType // Encoding type for the recording
-    interval?: number // Interval in milliseconds at which to emit recording data
+    interval?: number // Interval in milliseconds at which to emit audio data
 
     // Optional parameters for audio processing
     enableProcessing?: boolean // Boolean to enable/disable audio processing (default is false)
