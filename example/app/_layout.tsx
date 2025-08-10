@@ -31,6 +31,7 @@ export default function RootLayout() {
       <Stack.Screen name="hardware-default" options={{ title: 'Hardware Default Streaming' }} />
       <Stack.Screen name="16khz-recording" options={{ title: '16kHz Streaming' }} />
       <Stack.Screen name="playback-control" options={{ title: 'Playback Control' }} />
+      <Stack.Screen name="file-recording" options={{ title: 'File Recording' }} />
     </Stack>
   );
 }

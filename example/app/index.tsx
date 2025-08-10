@@ -37,6 +37,11 @@ const tests = [
     href: '/playback-control',
     title: 'Playback Control',
     description: 'Pause audio and clear queue controls'
+  },
+  {
+    href: '/file-recording',
+    title: 'File Recording',
+    description: 'Record to file, then play back with volume monitoring'
   }
 ];
 
