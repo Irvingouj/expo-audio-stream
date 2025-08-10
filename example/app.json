@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "expo-audio-stream",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -36,7 +37,8 @@
     "owner": "mykin-ai",
     "plugins": [
       "../app.plugin.js",
-      "expo-audio"
+      "expo-audio",
+      "expo-router"
     ]
   }
 }
