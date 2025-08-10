@@ -81,6 +81,9 @@ export default function FileRecordingScreen() {
       setRecordingResult(recording);
       resetVolume();
       
+      // Clear any previous audio player source to force a fresh instance
+      setAudioPlayerSource(null);
+      
       console.log('Recording stopped:', JSON.stringify(recording, null, 2));
     } catch (error) {
       Alert.alert('Error', `Failed to stop recording: ${error}`);
@@ -96,11 +99,24 @@ export default function FileRecordingScreen() {
     try {
       setPlaybackStatus('Loading...');
       
-      // Set the audio source and play
-      setAudioPlayerSource(recordingResult.fileUri);
-      // Give the player a moment to initialize with the new source
+      // First clear the source, then set the new one to force a fresh player instance
+      setAudioPlayerSource(null);
+      
+      // Wait a bit for the audio session to settle after recording
       setTimeout(() => {
-        player.play();
+        setAudioPlayerSource(recordingResult.fileUri);
+        
+        // Give the player more time to initialize with the new source
+        setTimeout(() => {
+          try {
+            player.play();
+          } catch (playError) {
+            console.error('Play error:', playError);
+            setIsPlaying(false);
+            setPlaybackStatus('Playback failed');
+            Alert.alert('Error', `Failed to play recording: ${playError}`);
+          }
+        }, 300);
       }, 100);
     } catch (error) {
       setIsPlaying(false);

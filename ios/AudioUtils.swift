@@ -347,4 +347,55 @@ class AudioUtils {
         
         return pcmBuffer
     }
+    
+    /// Converts a Float32 PCM buffer to Int16 PCM buffer
+    /// - Parameter buffer: The input Float32 PCM buffer
+    /// - Returns: A new Int16 PCM buffer, or nil if conversion fails
+    static func convertFloat32ToInt16(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard buffer.format.commonFormat == .pcmFormatFloat32,
+              let floatChannelData = buffer.floatChannelData else {
+            Logger.debug("[AudioUtils] Input buffer must be Float32 format")
+            return nil
+        }
+        
+        // Create Int16 format with same sample rate and channel count
+        guard let int16Format = AVAudioFormat(
+            commonFormat: .pcmFormatInt16,
+            sampleRate: buffer.format.sampleRate,
+            channels: buffer.format.channelCount,
+            interleaved: true
+        ) else {
+            Logger.debug("[AudioUtils] Failed to create Int16 format")
+            return nil
+        }
+        
+        // Create output buffer
+        guard let outputBuffer = AVAudioPCMBuffer(
+            pcmFormat: int16Format,
+            frameCapacity: buffer.frameLength
+        ) else {
+            Logger.debug("[AudioUtils] Failed to create output buffer")
+            return nil
+        }
+        
+        outputBuffer.frameLength = buffer.frameLength
+        let frameCount = Int(buffer.frameLength)
+        let channelCount = Int(buffer.format.channelCount)
+        
+        // Convert Float32 to Int16
+        if let int16ChannelData = outputBuffer.int16ChannelData {
+            for channel in 0..<channelCount {
+                let inputChannel = floatChannelData[channel]
+                let outputChannel = int16ChannelData[channel]
+                
+                for frame in 0..<frameCount {
+                    // Clamp float value to [-1.0, 1.0] and convert to Int16
+                    let floatSample = max(-1.0, min(1.0, inputChannel[frame]))
+                    outputChannel[frame] = Int16(floatSample * 32767.0)
+                }
+            }
+        }
+        
+        return outputBuffer
+    }
 }
