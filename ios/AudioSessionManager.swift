@@ -157,7 +157,6 @@ class AudioSessionManager {
         }
         
         let session = AVAudioSession.sharedInstance()
-        let sampleRate = session.sampleRate;
 
         // 1. Configure the audio session
         do {
@@ -174,7 +173,8 @@ class AudioSessionManager {
             return StartRecordingResult(error: "Failed to create recording file.")
         }
         self.recordingFileURL = fileURL
-        
+        let sampleRate = session.sampleRate;
+
         // 3. Use modern, efficient M4A format for the recording
         let recorderSettings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -198,8 +198,17 @@ class AudioSessionManager {
             
             // 7. Start a timer to poll for the volume level
             let timerInterval = max(0.1, Double(intervalMilliseconds) / 1000.0) // At least 100ms
-            meteringTimer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] _ in
-                self?.updateMeters()
+            Logger.debug("Creating metering timer with interval: \(timerInterval)s (from \(intervalMilliseconds)ms)")
+            
+            // Ensure timer is created on main thread and added to run loop
+            DispatchQueue.main.async {
+                self.meteringTimer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] timer in
+                    Logger.debug("Timer fired!")
+                    self?.updateMeters()
+                }
+                // Ensure timer is added to main run loop
+                RunLoop.main.add(self.meteringTimer!, forMode: .common)
+                Logger.debug("Metering timer created and added to main run loop")
             }
             
             isRecording = true
@@ -212,8 +221,6 @@ class AudioSessionManager {
             return StartRecordingResult(
                 fileUri: fileURL.absoluteString,
                 mimeType: mimeType,
-                channels: 1,
-                bitDepth: 16, // AAC effectively 16-bit quality
                 sampleRate: sampleRate
             )
             
@@ -225,7 +232,24 @@ class AudioSessionManager {
     
     /// Updates volume meters and emits volume to delegate
     @objc private func updateMeters() {
-        guard let audioRecorder = audioRecorder, audioRecorder.isRecording else { return }
+        Logger.debug("updateMeters() called")
+        
+        guard let audioRecorder = audioRecorder else {
+            Logger.debug("audioRecorder is nil")
+            return
+        }
+        
+        guard audioRecorder.isRecording else {
+            Logger.debug("audioRecorder is not recording")
+            return
+        }
+        
+        guard let delegate = delegate else {
+            Logger.debug("delegate is nil - no one to send volume updates to")
+            return
+        }
+        
+        Logger.debug("audioRecorder is recording, updating meters")
         
         // Refresh the meter values
         audioRecorder.updateMeters()
@@ -233,8 +257,12 @@ class AudioSessionManager {
         // Get the average power in decibels (-160.0 to 0.0)
         let averagePower = audioRecorder.averagePower(forChannel: 0)
         
+        Logger.debug("averagePower: \(averagePower), calling delegate")
+        
         // Send the volume to delegate (simplified - only volume, no audio data)
-        delegate?.audioSessionManager(self, didUpdateRecordingVolume: averagePower)
+        delegate.audioSessionManager(self, didUpdateRecordingVolume: averagePower)
+        
+        Logger.debug("delegate call completed")
     }
     
     /// Stops the current audio recording using simple AVAudioRecorder.
