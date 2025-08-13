@@ -373,6 +373,37 @@ export class ExpoPlayAudioStream {
   }
 
   /**
+   * Plays an M4A audio file from base64 encoded data.
+   * Unlike playSound(), this method plays the audio directly without queueing.
+   * @param m4aBase64 - Base64 encoded M4A audio data.
+   * @returns Promise that resolves when playback starts.
+   * @throws Error if the M4A audio fails to play.
+   */
+  static async playM4a(m4aBase64: string): Promise<void> {
+    try {
+      await ExpoPlayAudioStreamModule.playM4a(m4aBase64);
+    } catch (error: any) {
+      console.error(error);
+      throw new Error(`Failed to play M4A: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * Plays an M4A audio file from file path.
+   * @param fileUri - File URI to the M4A file.
+   * @returns Promise that resolves when playback starts.
+   * @throws Error if the M4A file fails to play.
+   */
+  static async playM4aFile(fileUri: string): Promise<void> {
+    try {
+      await ExpoPlayAudioStreamModule.playM4aFile(fileUri);
+    } catch (error: any) {
+      console.error(error);
+      throw new Error(`Failed to play M4A file: ${error.message || error}`);
+    }
+  }
+
+  /**
    * Sets the sound player configuration.
    * @param {SoundConfig} config - Configuration options for the sound player.
    * @returns {Promise<void>}

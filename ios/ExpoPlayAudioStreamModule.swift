@@ -241,6 +241,34 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             promise.resolve(nil)
         }
         
+        AsyncFunction("playM4a") { (base64Chunk: String, promise: Promise) in
+            if !isAudioSessionInitialized {
+                do {
+                    try ensureAudioSessionInitialized()
+                } catch {
+                    print("Failed to init audio session \(error.localizedDescription)")
+                    promise.reject("AUDIO_SESSION_ERROR", "Failed to init audio session: \(error.localizedDescription)")
+                    return
+                }
+            }
+            soundPlayer.playM4a(base64M4a: base64Chunk)
+            promise.resolve(nil)
+        }
+
+        AsyncFunction("playM4aFile") { (fileUri: String, promise: Promise) in
+            if !isAudioSessionInitialized {
+                do {
+                    try ensureAudioSessionInitialized()
+                } catch {
+                    print("Failed to init audio session \(error.localizedDescription)")
+                    promise.reject("AUDIO_SESSION_ERROR", "Failed to init audio session: \(error.localizedDescription)")
+                    return
+                }
+            }
+            soundPlayer.playM4aFile(fileUri: fileUri)
+            promise.resolve(nil)
+        }
+        
         AsyncFunction("stopSound") { (promise: Promise) in
             soundPlayer.stop(promise)
         }
@@ -407,7 +435,12 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
     ///   - manager: The AudioSessionManager instance.
     ///   - soundLevel: The current volume level in dBFS.
     func audioSessionManager(_ manager: AudioSessionManager, didUpdateRecordingVolume soundLevel: Float) {
-        guard let fileURL = manager.recordingFileURL else { return }
+        Logger.debug("audioSessionManager delegate called with soundLevel: \(soundLevel)")
+        
+        guard let fileURL = manager.recordingFileURL else {
+            Logger.debug("recordingFileURL is nil, cannot send volume event")
+            return
+        }
         
         // Construct the event payload for recording (volume feedback only)
         let eventBody: [String: Any] = [
@@ -415,8 +448,13 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
             "fileUri": fileURL.absoluteString,
             "soundLevel": soundLevel
         ]
+        
+        Logger.debug("Sending volume event to JavaScript: \(eventBody)")
+        
         // Emit the event to JavaScript
         sendEvent("AudioData", eventBody)
+        
+        Logger.debug("Volume event sent successfully")
     }
     
     /// Checks microphone permission and calls the completion handler with the result.

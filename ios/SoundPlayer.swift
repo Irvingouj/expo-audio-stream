@@ -316,6 +316,40 @@ class SoundPlayer {
         }
     }
     
+    /// Plays an M4A audio file from base64 encoded data
+    /// - Parameter base64String: Base64 encoded M4A audio data
+    /// - Note: This method plays the audio directly without queueing, using AVAudioPlayer
+    /// - Important: The base64 string must represent valid M4A format audio data
+    public func playM4a(base64M4a base64String: String) {
+        guard let data = Data(base64Encoded: base64String) else {
+            Logger.debug("[SoundPlayer] Invalid Base64 String for M4A")
+            return
+        }
+        do {
+            self.audioPlayer = try AVAudioPlayer(data: data, fileTypeHint: AVFileType.m4a.rawValue)
+            self.audioPlayer!.volume = 1.0
+            audioPlayer!.play()
+        } catch {
+            Logger.debug("[SoundPlayer] Error playing M4A audio: \(error)")
+        }
+    }
+
+    /// Plays an M4A audio file from file path
+    /// - Parameter fileUri: File URI to the M4A file
+    public func playM4aFile(fileUri: String) {
+        guard let url = URL(string: fileUri) else {
+            Logger.debug("[SoundPlayer] Invalid file URI for M4A: \(fileUri)")
+            return
+        }
+        do {
+            self.audioPlayer = try AVAudioPlayer(contentsOf: url)
+            self.audioPlayer!.volume = 1.0
+            audioPlayer!.play()
+        } catch {
+            Logger.debug("[SoundPlayer] Error playing M4A file: \(error)")
+        }
+    }
+    
     /// Processes audio chunk based on common format
     /// - Parameters:
     ///   - base64String: Base64 encoded audio data
