@@ -1,6 +1,6 @@
 {
   "name": "@irvingouj/expo-audio-stream",
-  "version": "0.2.27",
+  "version": "1.0.0",
   "description": "Expo Play Audio Stream module - Fork of expo-audio-stream with additional features and Expo SDK 52+ support",
   "main": "build/index.js",
   "types": "build/index.d.ts",
