@@ -119,9 +119,9 @@ export interface AudioRecording {
     filename: string
     durationMs: number
     size: number
-    channels: number
-    bitDepth: BitDepth
-    sampleRate: SampleRate
+    channels?: number
+    bitDepth?: BitDepth
+    sampleRate?: SampleRate
     mimeType: string
     transcripts?: TranscriberData[]
     wavPCMData?: Float32Array // Full PCM data for the recording in WAV format (only on web, for native use the fileUri)

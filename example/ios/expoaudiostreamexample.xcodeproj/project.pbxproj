@@ -353,7 +353,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = ai.mykin.audiostream.dev;
-				PRODUCT_NAME = expoaudiostreamexample;
+				PRODUCT_NAME = "expoaudiostreamexample";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "expoaudiostreamexample/expoaudiostreamexample-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -388,7 +388,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = ai.mykin.audiostream.dev;
-				PRODUCT_NAME = expoaudiostreamexample;
+				PRODUCT_NAME = "expoaudiostreamexample";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "expoaudiostreamexample/expoaudiostreamexample-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

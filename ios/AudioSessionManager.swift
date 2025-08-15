@@ -6,6 +6,11 @@ import ExpoModulesCore
 class AudioSessionManager {
     // MARK: - Simple Recording Properties
     private var audioRecorder: AVAudioRecorder?
+    
+    /// Public getter for audioRecorder to allow delegate access
+    var currentAudioRecorder: AVAudioRecorder? {
+        return audioRecorder
+    }
     private var meteringTimer: Timer?
     
     // MARK: - Playback Properties (keep existing for sound playback)
@@ -16,10 +21,8 @@ class AudioSessionManager {
     private let bufferAccessQueue = DispatchQueue(label: "com.expoaudiostream.bufferAccessQueue")
     
     // MARK: - Recording State
-    internal var recordingFileURL: URL?
     private var startTime: Date?
     private var pauseStartTime: Date?
-    private var isRecording = false
     private var isPaused = false
     private var pausedDuration = 0
     private var fileManager = FileManager.default
@@ -93,7 +96,7 @@ class AudioSessionManager {
     
     /// Creates a new recording file.
     /// - Returns: The URL of the newly created recording file, or nil if creation failed.
-    private func createRecordingFile() -> URL? {
+    private func createRecordingFile() -> URL {
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         recordingUUID = UUID()
         let fileName = "\(recordingUUID!.uuidString).m4a"
@@ -151,7 +154,7 @@ class AudioSessionManager {
     /// - Returns: A StartRecordingResult object if recording starts successfully, or nil otherwise.
     /// - Note: Uses hardware defaults for all audio settings (sample rate, channels, bit depth).
     func startRecording(intervalMilliseconds: Int) -> StartRecordingResult? {
-        guard !isRecording else {
+        guard audioRecorder?.isRecording != true else {
             Logger.debug("Recording is already in progress.")
             return StartRecordingResult(error: "Recording is already in progress.")
         }
@@ -169,10 +172,7 @@ class AudioSessionManager {
         }
         
         // 2. Create recording file URL
-        guard let fileURL = createRecordingFile() else {
-            return StartRecordingResult(error: "Failed to create recording file.")
-        }
-        self.recordingFileURL = fileURL
+        let fileURL = createRecordingFile()
         let sampleRate = session.sampleRate;
 
         // 3. Use modern, efficient M4A format for the recording
@@ -211,7 +211,6 @@ class AudioSessionManager {
                 Logger.debug("Metering timer created and added to main run loop")
             }
             
-            isRecording = true
             startTime = Date()
             recordingSettings = nil // No settings needed for simple recording
             
@@ -268,11 +267,12 @@ class AudioSessionManager {
     /// Stops the current audio recording using simple AVAudioRecorder.
     /// - Parameter completion: Completion handler called with the recording result.
     func stopRecording(completion: @escaping (RecordingResult?) -> Void) {
-        guard isRecording else {
+        guard audioRecorder?.isRecording == true else {
             Logger.debug("Recording is not active")
             completion(RecordingResult(fileUri: "", error: "Recording is not active"))
             return
         }
+        
         
         // Stop the recorder
         audioRecorder?.stop()
@@ -281,13 +281,12 @@ class AudioSessionManager {
         meteringTimer?.invalidate()
         meteringTimer = nil
         
-        isRecording = false
-        
         // Create the result - the file is already finalized and correct by AVAudioRecorder
         let result = createRecordingResult()
         
         // Clean up
         audioRecorder = nil
+        
         
         // Reset the audio session to playback mode
         resetAudioSessionToPlayback()
@@ -311,13 +310,41 @@ class AudioSessionManager {
     
     /// Creates recording result from current recording state
     private func createRecordingResult() -> RecordingResult {
-        guard let fileURL = recordingFileURL, let startTime = startTime else {
+        guard let audioRecorder = audioRecorder, let startTime = startTime else {
             Logger.debug("Recording data is nil")
             return RecordingResult(fileUri: "", error: "Recording data is nil")
         }
         
+        let fileURL = audioRecorder.url
+        let settings = audioRecorder.settings
+        
         let endTime = Date()
         let duration = Int64(endTime.timeIntervalSince(startTime) * 1000) - Int64(pausedDuration * 1000)
+        
+        // Extract actual values from audioRecorder settings - only if we know them
+        let channels = settings[AVNumberOfChannelsKey] as? Int
+        let sampleRate = settings[AVSampleRateKey] as? Double
+        
+        // For M4A/AAC format, bit depth is not directly stored in settings
+        // AAC is a lossy format, but we can estimate based on quality/bitrate if available
+        let bitDepth: Int?
+        if let audioQuality = settings[AVEncoderAudioQualityKey] as? Int {
+            // Map audio quality to approximate bit depth equivalent
+            switch audioQuality {
+            case AVAudioQuality.min.rawValue:
+                bitDepth = 8
+            case AVAudioQuality.low.rawValue:
+                bitDepth = 12
+            case AVAudioQuality.medium.rawValue:
+                bitDepth = 16
+            case AVAudioQuality.high.rawValue, AVAudioQuality.max.rawValue:
+                bitDepth = 16 // AAC high quality roughly equivalent to 16-bit
+            default:
+                bitDepth = nil // Unknown quality level
+            }
+        } else {
+            bitDepth = nil // No quality information available
+        }
         
         do {
             let fileAttributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
@@ -329,9 +356,9 @@ class AudioSessionManager {
                 mimeType: mimeType,
                 duration: duration,
                 size: fileSize,
-                channels: 1, // Always mono for our simple recorder
-                bitDepth: 16, // AAC effectively 16-bit quality
-                sampleRate: 44100 // Fixed sample rate we use
+                channels: channels,
+                bitDepth: bitDepth,
+                sampleRate: sampleRate.map { Double(Int($0)) }
             )
         } catch {
             Logger.debug("Failed to fetch file attributes: \(error.localizedDescription)")
@@ -484,7 +511,7 @@ class AudioSessionManager {
     
     /// Pauses the current audio recording.
     func pauseRecording() {
-        guard isRecording && !isPaused else {
+        guard audioRecorder?.isRecording == true && !isPaused else {
             Logger.debug("Recording is not in progress or already paused.")
             return
         }
@@ -498,7 +525,7 @@ class AudioSessionManager {
     
     /// Resumes the current audio recording.
     func resumeRecording() {
-        guard isRecording && isPaused else {
+        guard audioRecorder?.isRecording == false && isPaused else {
             Logger.debug("Recording is not in progress or not paused.")
             return
         }

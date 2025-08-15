@@ -437,10 +437,12 @@ public class ExpoPlayAudioStreamModule: Module, AudioStreamManagerDelegate, Micr
     func audioSessionManager(_ manager: AudioSessionManager, didUpdateRecordingVolume soundLevel: Float) {
         Logger.debug("audioSessionManager delegate called with soundLevel: \(soundLevel)")
         
-        guard let fileURL = manager.recordingFileURL else {
-            Logger.debug("recordingFileURL is nil, cannot send volume event")
+        guard let audioRecorder = manager.currentAudioRecorder else {
+            Logger.debug("audioRecorder is nil, cannot send volume event")
             return
         }
+        
+        let fileURL = audioRecorder.url
         
         // Construct the event payload for recording (volume feedback only)
         let eventBody: [String: Any] = [
